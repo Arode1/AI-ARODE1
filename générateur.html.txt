@@ -1,0 +1,63 @@
+﻿import subprocess
+import sys
+import os
+
+# 1. Vérification et installation automatique des dépendances
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# Liste des packages requis
+required_packages = ['diffusers', 'transformers', 'torch', 'moviepy']
+
+# Installation de chaque package si nécessaire
+for package in required_packages:
+    try:
+        __import__(package)
+    except ImportError:
+        print(f"Package manquant : {package}. Installation en cours...")
+        install(package)
+
+# Importer les bibliothèques nécessaires après installation
+from diffusers import StableDiffusionPipeline
+from moviepy.editor import ImageSequenceClip
+
+# 2. Créer un générateur d'images avec Stable Diffusion
+def generate_images(prompts, output_dir="generated_images"):
+    model_id = "CompVis/stable-diffusion-v1-4"
+    pipe = StableDiffusionPipeline.from_pretrained(model_id)
+    images = []
+    
+    # Créer un dossier de sortie
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    # Générer des images pour chaque prompt
+    for i, prompt in enumerate(prompts):
+        image = pipe(prompt).images[0]
+        image_path = os.path.join(output_dir, f"image_{i+1}.png")
+        image.save(image_path)
+        images.append(image_path)
+        print(f"Image générée pour le prompt '{prompt}': {image_path}")
+    
+    return images
+
+# 3. Animer les images en une vidéo avec MoviePy
+def create_video_from_images(images, output_video="animation.mp4", fps=12):
+    clip = ImageSequenceClip(images, fps=fps)
+    clip.write_videofile(output_video, fps=fps)
+    print(f"Vidéo créée : {output_video}")
+
+# 4. Main : générer des images à partir de prompts et créer une animation
+if __name__ == "__main__":
+    # Liste de prompts pour la génération d'images
+    prompts = [
+        "Un château flottant dans le ciel au coucher du soleil",
+        "Un robot dansant sous la pluie",
+        "Un paysage montagneux avec des nuages magiques"
+    ]
+    
+    # Générer des images
+    images = generate_images(prompts)
+
+    # Créer une animation vidéo à partir des images générées
+    create_video_from_images(images, output_video="mon_animation.mp4", fps=12)
